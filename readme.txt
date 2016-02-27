@@ -20,3 +20,4 @@ Start Inkscape.  "Destructive Clip" should now be available under the Extensions
 
 # Example
 clipped.png shows the rectangular blue path clipping the tiled "dovetail" red path.  The red path has been *modified*
+
