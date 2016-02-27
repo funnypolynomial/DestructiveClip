@@ -16,3 +16,6 @@ Mark Wilson Feb 2016
 # To install
 Copy destructiveclip.py & destructiveclip.inx into Inkscape\share\extensions where-ever Inkscape is installed (eg Program Files).
 Start Inkscape.  "Destructive Clip" should now be available under the Extensions menu, in the Modify Path submenu
+
+# Example
+clipped.png shows the rectangular blue path clipping the tiled "dovetail" red path.  The red path has been *modified*
