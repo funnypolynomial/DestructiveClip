@@ -19,7 +19,6 @@ import inkex, simplepath
 class MyEffect(inkex.Effect):
   def __init__(self):
     self.tolerance = 0.0001  # arbitrary fudge factor 
-    self.pathCommandsIgnored = []
     inkex.Effect.__init__(self)
 
   def approxEqual(self, a, b): 
@@ -44,6 +43,7 @@ class MyEffect(inkex.Effect):
     # only handles, Move, Line and Close.  
     # The simplepath library has already simplified things, normalized relative commands, etc
     lineSegments = first = prev = this = []
+    errors = set([])  # Similar errors will be stored only once
     for cmd in path:
       this = cmd[1]
       if cmd[0] == 'M': # moveto
@@ -54,10 +54,14 @@ class MyEffect(inkex.Effect):
       elif cmd[0] == 'Z': # close
         lineSegments.append([prev, first])
         first = []
-      elif not cmd[0] in self.pathCommandsIgnored:  # list the commands we ignored
-        self.pathCommandsIgnored.append(cmd[0])
+      elif cmd[0] == 'C':
+        # https://developer.mozilla.org/en/docs/Web/SVG/Tutorial/Paths
+        lineSegments.append([prev, [this[4], this[5]]])
+        errors.add("Curve node detected (svg type C), this node will be handled as a regular node")
+      else:
+        errors.add("Invalid node type detected: {}. This script only handle type M, L, Z".format(cmd[0]))
       prev = this
-    return lineSegments
+    return (lineSegments, errors)
 
   def linesgmentsToSimplePath(self, lineSegments):
     # reverses simplepathToLines - converts line segments to Move/Line-to's
@@ -130,28 +134,32 @@ class MyEffect(inkex.Effect):
     clippingLineSegments = None
     pathTag = inkex.addNS('path','svg')
     groupTag = inkex.addNS('g','svg')
+    error_messages = []
     for id in self.options.ids:  # the selection, top-down
       node = self.selected[id]
       if node.tag == pathTag:
         if clippingLineSegments is None: # first path is the clipper
-          clippingLineSegments = self.simplepathToLineSegments(simplepath.parsePath(node.get('d')))
+          (clippingLineSegments, errors) = self.simplepathToLineSegments(simplepath.parsePath(node.get('d')))
+          error_messages.extend(['{}: {}'.format(id, err) for err in errors])
         else:
           # do all the work!
-          segmentsToClip = self.simplepathToLineSegments(simplepath.parsePath(node.get('d')))
+          segmentsToClip, errors = self.simplepathToLineSegments(simplepath.parsePath(node.get('d')))
+          error_messages.extend(['{}: {}'.format(id, err) for err in errors])
           clippedSegments = self.clipLineSegments(segmentsToClip, clippingLineSegments)
           if len(clippedSegments) != 0:
             # replace the path
             node.set('d', simplepath.formatPath(self.linesgmentsToSimplePath(clippedSegments)))
           else:
             # don't put back an empty path(?)  could perhaps put move, move?
-            inkex.debug('Warning: "%s" clipped to nothing, will not be updated.' % str(node.get('id')))
+            inkex.debug('Object {} clipped to nothing, will not be updated.'.format(node.get('id')))
       elif node.tag == groupTag:  # we don't look inside groups for paths
-        inkex.debug('Warning: Group object will be ignored.  Expecting only Path objects.')
+        inkex.debug('Group object {} will be ignored. Please ungroup before running the script.'.format(id))
       else: # something else
-        inkex.debug('Warning: Object of type "%s" will be ignored.  Expecting only "%s".' % (str(node.tag), str(pathTag)))
-      
-    if len(self.pathCommandsIgnored) != 0:
-      inkex.debug("Warning: Some path commands will be ignored: " + str(self.pathCommandsIgnored))
+        inkex.debug('Object {} is not of type path ({}), and will be ignored. Current type "{}".'.format(id, pathTag, node.tag))
+
+    for error in error_messages:
+        inkex.debug(error)
+
 
       
 if __name__ == '__main__':
