@@ -5,7 +5,7 @@ Thus the clipping is included when exported, for example as a DXF file.
 Select two or more **paths** then choose Extensions|Modify path|Destructive clip.  The topmost path will be used to clip the others.
 
 Notes:-
-* Curves in paths are not supported (use Flatten Beziers).
+* Curves (including Arcs) in paths are not supported (use Extensions|Modify path|Flatten Beziers).
 * Non-path objects in the selection will be ignored.  Use Object|Ungroup.
 * Paths entirely outside the clipping path will remain untouched (rather than modifying them to an empty path)
 * Complex paths may take a while (there seems to be no way too show progress)
