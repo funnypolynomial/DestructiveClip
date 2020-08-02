@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 '''
   ---DESTRUCTIVE Clip---
   An Inkscape Extension which works like Object|Clip|Set except that the paths clipped are actually *modified*
@@ -11,41 +11,40 @@
     * Complex paths may take a while (there seems to be no way too show progress)
     * Yes, using MBR's to do gross clipping might make it faster
     * No, Python is not my first language (C/C++ is)
-    
+
   Mark Wilson Feb 2016
-  
+
   ----
-  
+
    Edits by Windell H. Oskay, www.evilmadscientit.com, August 2020
         Update calls to Inkscape 1.0 extension API to avoid deprecation warnings
-        minimal standardization of python whitespace
-        handle some errors more gracefully
+        Minimal standardization of python whitespace
+        Handle some errors more gracefully
 
 '''
 
 import inkex
-from inkex import PathElement
 import sys
 
 
-class destructive_clip(inkex.Effect):
+class DestructiveClip(inkex.Effect):
 
     def __init__(self):
-        self.tolerance = 0.0001  # arbitrary fudge factor 
+        self.tolerance = 0.0001  # arbitrary fudge factor
         inkex.Effect.__init__(self)
         self.error_messages = []
 
         self.curve_error = 'Unable to parse path.\nConsider removing curves '
         self.curve_error += 'with Extensions > Modify Path > Flatten Beziers...'
 
-    def approxEqual(self, a, b): 
+    def approxEqual(self, a, b):
         # compare with tiny tolerance
         return abs(a-b) <= self.tolerance
 
-    def midPoint(self, line): 
+    def midPoint(self, line):
         # midPoint of line
         return [(line[0][0] + line[1][0])/2, (line[0][1] + line[1][1])/2]
-  
+
     def maxX(self, lineSegments):
         # return max X coord of lineSegments
         maxx = 0.0
@@ -53,11 +52,11 @@ class destructive_clip(inkex.Effect):
             maxx = max(maxx, line[0][0])
             maxx = max(maxx, line[1][0])
         return maxx
-    
+
     def simplepathToLineSegments(self, path):
         # takes a simplepath and converts to line *segments*, for simplicity.
         # Thus [MoveTo P0, LineTo P1, LineTo P2] becomes [[P0-P1],[P1,P2]]
-        # only handles, Move, Line and Close.  
+        # only handles, Move, Line and Close.
         # The simplepath library has already simplified things, normalized relative commands, etc
         lineSegments = first = prev = this = []
         errors = set([])  # Similar errors will be stored only once
@@ -93,10 +92,10 @@ class destructive_clip(inkex.Effect):
             end = line[1]
             path.append(['L', end])
         return path
-    
+
     def lineIntersection(self, L1From, L1To, L2From, L2To):
         # returns as [x, y] the intersection of the line L1From-L1To and L2From-L2To, or None
-        # http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect 
+        # http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
 
         try:
             dL1 = [L1To[0] - L1From[0], L1To[1] - L1From[1]]
@@ -130,7 +129,7 @@ class destructive_clip(inkex.Effect):
             if self.insideRegion(self.midPoint(segment), lineSegments, lineSegmentsMaxX):
                 culled.append(segment)
         return culled
-      
+
     def clipLine(self, line, lineSegments):
         # returns line split where-ever lines in lineSegments cross it
         linesWrite = [line]
@@ -145,18 +144,18 @@ class destructive_clip(inkex.Effect):
                     linesWrite.append([line[0], intersect])
                     linesWrite.append([intersect, line[1]])
         return linesWrite
-    
+
     def clipLineSegments(self, lineSegmentsToClip, clippingLineSegments):
         # return the lines in lineSegmentsToClip clipped by the lines in clippingLineSegments
         clippedLines = []
         for lineToClip in lineSegmentsToClip:
             clippedLines.extend(self.cullSegmentedLine(self.clipLine(lineToClip, clippingLineSegments), clippingLineSegments, self.maxX(clippingLineSegments)))
         return clippedLines
-  
+
     def effect(self):
         clippingLineSegments = None
-        pathTag = inkex.addNS('path','svg')
-        groupTag = inkex.addNS('g','svg')
+        pathTag = inkex.addNS('path', 'svg')
+        groupTag = inkex.addNS('g', 'svg')
         self.error_messages = []
         for id in self.options.ids:  # the selection, top-down
             node = self.svg.selected[id]
@@ -179,9 +178,9 @@ class destructive_clip(inkex.Effect):
                 inkex.errormsg('Group object {} will be ignored. Please ungroup before running the script.'.format(id))
             else: # something else
                 inkex.errormsg('Object {} is not of type path ({}), and will be ignored. Current type "{}".'.format(id, pathTag, node.tag))
-    
+
         for error in self.error_messages:
             inkex.errormsg(error)
 
 if __name__ == '__main__':
-    destructive_clip().run()
+    DestructiveClip().run()
