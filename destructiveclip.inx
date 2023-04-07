@@ -3,7 +3,6 @@
    <_name>Destructive Clip</_name>
    <id>com.funnypolynomial.inkscape.extension.destructiveclip</id>
        <dependency type="executable" location="extensions">destructiveclip.py</dependency>
-       <dependency type="executable" location="extensions">inkex.py</dependency>
    <effect>
                <object-type>path</object-type>
                 <effects-menu>
